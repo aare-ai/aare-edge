@@ -1,0 +1,43 @@
+# HIPAA DSLM Training Configuration
+# Use with: python -m src.training.train_dslm --config configs/training_config.yaml
+
+# Model settings
+model_name: "microsoft/Phi-3-mini-4k-instruct"
+use_4bit: true
+use_lora: true
+
+# LoRA configuration
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules:
+  - "q_proj"
+  - "v_proj"
+  - "k_proj"
+  - "o_proj"
+
+# Training hyperparameters
+output_dir: "./hipaa_dslm"
+num_train_epochs: 3
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 4
+gradient_accumulation_steps: 8  # Effective batch size: 16
+learning_rate: 2.0e-4
+weight_decay: 0.01
+warmup_ratio: 0.1
+max_length: 512
+
+# Evaluation & saving
+evaluation_strategy: "epoch"
+save_strategy: "epoch"
+load_best_model_at_end: true
+metric_for_best_model: "f1"
+
+# Data sources
+synthetic_data_path: "data/synthetic.json"
+use_n2c2: true
+
+# Notes:
+# - Training on GPU (Colab T4/V100): ~4-8 hours for 3 epochs
+# - Target F1: >0.85 weighted average
+# - Memory usage: ~12GB with 4-bit quantization

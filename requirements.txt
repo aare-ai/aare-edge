@@ -1,0 +1,47 @@
+# Aare Edge - Python Dependencies
+# For training, data preparation, and development
+
+# Core ML/Deep Learning
+torch>=2.0.0
+transformers>=4.36.0
+datasets>=2.16.0
+accelerate>=0.25.0
+
+# PEFT/LoRA for efficient fine-tuning
+peft>=0.7.0
+bitsandbytes>=0.41.0
+
+# NER Evaluation
+seqeval>=1.2.2
+
+# Theorem Proving
+z3-solver>=4.12.0
+
+# Data Generation
+faker>=22.0.0
+
+# Utilities
+numpy>=1.24.0
+pandas>=2.0.0
+tqdm>=4.66.0
+pyyaml>=6.0.1
+
+# Model Export
+onnx>=1.15.0
+onnxruntime>=1.16.0
+coremltools>=7.0
+
+# Optional: Observability
+opentelemetry-api>=1.22.0
+opentelemetry-sdk>=1.22.0
+opentelemetry-exporter-otlp>=1.22.0
+
+# Development
+pytest>=7.4.0
+black>=23.12.0
+ruff>=0.1.9
+mypy>=1.8.0
+
+# Jupyter/Colab
+jupyter>=1.0.0
+ipywidgets>=8.1.0

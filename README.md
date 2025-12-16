@@ -233,7 +233,7 @@ let verification = solver.verify(n.gt(0)) // .holds or .counterexample
 ## License
 
 - **SDK Code**: MIT License (open source)
-- **Model Weights**: Proprietary (contact sales@aare.ai for licensing)
+- **Model Weights**: Proprietary (contact info@aare.ai for licensing)
 
 The label schema in `configs/hipaa-v1.json` is open source under MIT.
 

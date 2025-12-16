@@ -8,7 +8,7 @@ Aare Edge combines fine-tuned transformer models (CoreML) with Z3Lite constraint
 
 ### Key Features
 
-- **On-Device Processing**: All inference runs locally—no data leaves the device
+- **On-Device Processing**: All inference runs locally, no data leaves the device
 - **Domain Agnostic**: Use with any NER model and entity schema
 - **CoreML Optimized**: Native iOS/macOS performance with Neural Engine acceleration
 - **Policy Verification**: Z3Lite constraint solver for custom compliance rules

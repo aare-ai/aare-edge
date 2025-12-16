@@ -1,18 +1,25 @@
-# Aare Edge: On-Device HIPAA PHI Detection
+# Aare Edge: On-Device NER & Policy Verification
 
-A neuro-symbolic system for real-time PHI (Protected Health Information) detection and HIPAA compliance verification, designed to run entirely on-device.
+A neuro-symbolic SDK for real-time Named Entity Recognition (NER) and policy verification, designed to run entirely on-device.
 
 ## Overview
 
-Aare Edge combines a fine-tuned DistilBERT model for Named Entity Recognition (NER) with Z3Lite constraint solving to provide verifiable HIPAA compliance checks without sending sensitive data to the cloud.
+Aare Edge combines fine-tuned transformer models (CoreML) with Z3Lite constraint solving to provide verifiable entity detection and policy compliance checks without sending data to the cloud.
 
 ### Key Features
 
-- **On-Device Processing**: All PHI detection runs locally—no data leaves the device
-- **18 HIPAA Categories**: Full coverage of the 18 PHI identifier types defined by HIPAA Safe Harbor
+- **On-Device Processing**: All inference runs locally—no data leaves the device
+- **Domain Agnostic**: Use with any NER model and entity schema
 - **CoreML Optimized**: Native iOS/macOS performance with Neural Engine acceleration
-- **Policy Verification**: Z3Lite constraint solver for compliance rule checking
+- **Policy Verification**: Z3Lite constraint solver for custom compliance rules
 - **Swift Package**: Easy integration via Swift Package Manager
+
+## Use Cases
+
+- **Healthcare**: HIPAA PHI detection and de-identification
+- **Finance**: PII detection for regulatory compliance
+- **Legal**: Contract entity extraction and validation
+- **Custom**: Any domain-specific NER task
 
 ## Architecture
 
@@ -21,8 +28,8 @@ Aare Edge combines a fine-tuned DistilBERT model for Named Entity Recognition (N
 │                      Aare Edge SDK                          │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌─────────────────┐    ┌─────────────────────────────────┐ │
-│  │   DistilBERT    │───▶│  Entity Extraction              │ │
-│  │   CoreML Model  │    │  BIO Labels → PHI Entities      │ │
+│  │   NER Model     │───▶│  Entity Extraction              │ │
+│  │   (CoreML)      │    │  BIO Labels → Entities          │ │
 │  └─────────────────┘    └───────────────┬─────────────────┘ │
 │                                         │                   │
 │                                         ▼                   │
@@ -38,29 +45,6 @@ Aare Edge combines a fine-tuned DistilBERT model for Named Entity Recognition (N
 │                         └─────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ```
-
-## PHI Categories (HIPAA Safe Harbor 18)
-
-| # | Category | Description |
-|---|----------|-------------|
-| 1 | NAME | Patient and provider names |
-| 2 | LOCATION | Addresses, cities, zip codes |
-| 3 | DATE | Birth dates, admission dates, ages over 89 |
-| 4 | PHONE | Telephone numbers |
-| 5 | FAX | Fax numbers |
-| 6 | EMAIL | Email addresses |
-| 7 | SSN | Social Security numbers |
-| 8 | MRN | Medical record numbers |
-| 9 | HEALTH_PLAN | Health plan beneficiary numbers |
-| 10 | ACCOUNT | Account numbers |
-| 11 | LICENSE | Certificate/license numbers |
-| 12 | VEHICLE | Vehicle identifiers and serial numbers |
-| 13 | DEVICE | Medical device identifiers |
-| 14 | URL | Web URLs |
-| 15 | IP | IP addresses |
-| 16 | BIOMETRIC | Fingerprints, voice prints |
-| 17 | PHOTO | Full face photographic images |
-| 18 | OTHER | Any other unique identifiers |
 
 ## Installation
 
@@ -82,31 +66,28 @@ Or add via Xcode:
 
 - iOS 16.0+ / macOS 13.0+
 - Swift 5.9+
-- CoreML model files (licensed separately)
+- CoreML model (BIO-tagged NER)
 
 ## Quick Start
 
-### PHI Detection
+### Entity Detection
 
 ```swift
 import AareEdgeSDK
 
-// Initialize with your model and vocabulary files
+// Initialize with your model and vocabulary
 let detector = try PHIDetector(
     modelURL: modelURL,
-    vocabURL: vocabURL
+    vocabURL: vocabURL,
+    configURL: labelConfigURL  // Your entity label schema
 )
 
-// Detect PHI in text
-let result = try detector.detect("Patient John Smith, DOB: 01/15/1985")
+// Detect entities in text
+let result = try detector.detect("Your input text here")
 
-// Check results
-if result.containsPHI {
-    for entity in result.entities {
-        print("\(entity.type): \(entity.text)")
-        // NAME: John Smith
-        // DATE: 01/15/1985
-    }
+// Process results
+for entity in result.entities {
+    print("\(entity.type): \(entity.text) [\(entity.startOffset)-\(entity.endOffset)]")
 }
 ```
 
@@ -118,20 +99,20 @@ import AareEdgeSDK
 let solver = Z3Lite()
 
 // Define policy variables
-let phiCount = solver.intVar("phi_count")
-let isPublic = solver.boolVar("is_public")
+let entityCount = solver.intVar("entity_count")
+let isRestricted = solver.boolVar("is_restricted")
 
-// Policy: if public release, PHI count must be 0
-solver.assert(isPublic.implies(phiCount.eq(0)))
+// Policy: if restricted context, entity count must be 0
+solver.assert(isRestricted.implies(entityCount.eq(0)))
 
 // Bind actual values
-solver.bind("is_public", to: .bool(true))
-solver.bind("phi_count", to: .int(result.entities.count))
+solver.bind("is_restricted", to: .bool(true))
+solver.bind("entity_count", to: .int(result.entities.count))
 
 // Check compliance
 let check = solver.check()
 if check.isUnsatisfiable {
-    print("Policy violated: PHI detected in public release")
+    print("Policy violated")
 }
 ```
 
@@ -142,42 +123,62 @@ aare-edge/
 ├── AareEdgeSDK/           # Swift SDK (open source)
 │   ├── Sources/
 │   │   └── AareEdgeSDK/
-│   │       ├── PHIDetector.swift
-│   │       ├── Tokenizer.swift
-│   │       ├── EntityExtractor.swift
-│   │       └── Z3Lite.swift
+│   │       ├── PHIDetector.swift      # NER inference
+│   │       ├── Tokenizer.swift        # WordPiece tokenizer
+│   │       ├── EntityExtractor.swift  # BIO → entities
+│   │       └── Z3Lite.swift           # Constraint solver
 │   └── Tests/
-├── AareEdgeDemo/          # Reference iOS app
+├── AareEdgeDemo/          # Reference iOS app (HIPAA example)
 │   └── AareEdgeDemo/
-│       ├── ContentView.swift
-│       ├── PolicyVerificationView.swift
-│       └── AboutView.swift
-├── configs/               # Label configurations
-│   └── hipaa-v1.json
-└── docs/                  # Documentation
+├── configs/               # Example label configurations
+│   └── hipaa-v1.json      # HIPAA Safe Harbor schema
+└── README.md
 ```
 
-## Demo App
+## Example: HIPAA PHI Detection
 
-The AareEdgeDemo app demonstrates:
+The included demo app shows HIPAA PHI detection as an example use case:
 
-- **PHI Detection**: Scan text for sensitive information
-- **Policy Verification**: Check compliance with custom rules
-- **Sample Data**: Pre-loaded examples for testing
+```swift
+// HIPAA-specific label config
+let detector = try PHIDetector(
+    modelURL: hipaaModelURL,
+    vocabURL: vocabURL,
+    configURL: Bundle.main.url(forResource: "hipaa-v1", withExtension: "json")
+)
 
-To run the demo:
+let result = try detector.detect("Patient John Smith, SSN: 123-45-6789")
+// Detects: NAME: "John Smith", SSN: "123-45-6789"
+```
 
-1. Open `AareEdgeDemo` in Xcode
-2. Add your `hipaa_ner.mlpackage` and `vocab.txt` to the bundle
-3. Build and run on iOS device or simulator
+The HIPAA config includes 18 Safe Harbor categories: NAME, LOCATION, DATE, PHONE, FAX, EMAIL, SSN, MRN, HEALTH_PLAN, ACCOUNT, LICENSE, VEHICLE, DEVICE, URL, IP, BIOMETRIC, PHOTO, OTHER.
+
+## Custom Domain Configuration
+
+Create your own label configuration JSON:
+
+```json
+{
+  "label_list": [
+    "O",
+    "B-PERSON", "I-PERSON",
+    "B-ORG", "I-ORG",
+    "B-AMOUNT", "I-AMOUNT",
+    "B-DATE", "I-DATE"
+  ],
+  "num_labels": 9
+}
+```
+
+Train a model with your schema, convert to CoreML, and use with the SDK.
 
 ## API Reference
 
-### PHIDetector
+### Detector
 
 ```swift
 // Initialize
-let detector = try PHIDetector(modelURL: url, vocabURL: url)
+let detector = try PHIDetector(modelURL: url, vocabURL: url, configURL: url)
 
 // Basic detection
 let result = try detector.detect(text)
@@ -186,7 +187,7 @@ let result = try detector.detect(text)
 let detailed = try detector.detectWithScores(text)
 ```
 
-### PHIDetectionResult
+### Detection Result
 
 ```swift
 struct PHIDetectionResult {
@@ -198,15 +199,15 @@ struct PHIDetectionResult {
 }
 
 struct PHIEntity {
-    let type: String      // e.g., "NAME", "SSN"
-    let text: String      // The detected text
-    let startOffset: Int  // Character offset
+    let type: String       // Entity type from your schema
+    let text: String       // The detected text
+    let startOffset: Int   // Character offset
     let endOffset: Int
     let confidence: Float
 }
 ```
 
-### Z3Lite
+### Z3Lite Constraint Solver
 
 ```swift
 let solver = Z3Lite()
@@ -228,18 +229,24 @@ let result = solver.check() // .satisfiable or .unsatisfiable
 
 // Verify a property holds
 let verification = solver.verify(n.gt(0)) // .holds or .counterexample
+
+// Push/pop for scoped constraints
+solver.push()
+solver.assert(n.lt(10))
+solver.check()
+solver.pop()  // Reverts to previous state
 ```
 
 ## License
 
 - **SDK Code**: MIT License (open source)
-- **Model Weights**: Proprietary (contact info@aare.ai for licensing)
+- **Model Weights**: Trained models are licensed separately (contact info@aare.ai)
 
-The label schema in `configs/hipaa-v1.json` is open source under MIT.
+The example label schema in `configs/hipaa-v1.json` is open source under MIT.
 
 ## Contributing
 
-Contributions to the SDK are welcome! Please see our contributing guidelines.
+Contributions to the SDK are welcome!
 
 1. Fork the repository
 2. Create a feature branch
@@ -248,5 +255,4 @@ Contributions to the SDK are welcome! Please see our contributing guidelines.
 ## Support
 
 - GitHub Issues: [github.com/aare-ai/aare-edge/issues](https://github.com/aare-ai/aare-edge/issues)
-- Documentation: [docs.aare.ai](https://docs.aare.ai)
-- Email: support@aare.ai
+- Email: info@aare.ai

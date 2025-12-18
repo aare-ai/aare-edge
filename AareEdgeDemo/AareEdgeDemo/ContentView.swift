@@ -12,7 +12,7 @@ struct ContentView: View {
                     .font(.body)
                     .padding(8)
                     .frame(minHeight: 150, maxHeight: 200)
-                    .background(Color(.systemGray6))
+                    .background(Color(uiColor: .systemGray6))
                     .cornerRadius(8)
                     .padding()
 
@@ -121,7 +121,7 @@ struct ResultsView: View {
                 }
             } else {
                 VStack(spacing: 8) {
-                    Image(systemName: "shield.checkmark")
+                    Image(systemName: "checkmark.shield.fill")
                         .font(.system(size: 48))
                         .foregroundColor(.green)
                     Text("Text is safe for sharing")
@@ -132,7 +132,7 @@ struct ResultsView: View {
                 .padding()
             }
         }
-        .background(Color(.systemBackground))
+        .background(Color(uiColor: .systemBackground))
     }
 }
 
@@ -186,7 +186,7 @@ struct PlaceholderView: View {
                 .foregroundColor(.secondary)
             Text("Powered by on-device ML")
                 .font(.caption)
-                .foregroundColor(.tertiary)
+                .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()

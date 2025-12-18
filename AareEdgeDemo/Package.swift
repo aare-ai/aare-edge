@@ -6,11 +6,10 @@ import PackageDescription
 let package = Package(
     name: "AareEdgeDemo",
     platforms: [
-        .iOS(.v16),
-        .macOS(.v13)
+        .iOS(.v16)
     ],
     products: [
-        .executable(
+        .library(
             name: "AareEdgeDemo",
             targets: ["AareEdgeDemo"]
         ),
@@ -19,7 +18,7 @@ let package = Package(
         .package(path: "../AareEdgeSDK")
     ],
     targets: [
-        .executableTarget(
+        .target(
             name: "AareEdgeDemo",
             dependencies: ["AareEdgeSDK"],
             path: "AareEdgeDemo"

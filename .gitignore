@@ -56,6 +56,7 @@ docs/
 src/training/
 src/inference/
 scripts/convert*.py
+training/
 
 # Data
 data/
@@ -73,6 +74,8 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+test_*.py
+test_*.swift
 
 # Build
 *.egg-info/

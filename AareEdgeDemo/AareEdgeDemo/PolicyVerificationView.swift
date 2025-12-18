@@ -61,7 +61,7 @@ struct PolicyVerificationView: View {
             }
             .navigationTitle("Policy Verification")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .automatic) {
                     Button("Sample Data") {
                         viewModel.loadSampleData()
                     }
@@ -141,12 +141,10 @@ class PolicyVerificationViewModel: ObservableObject {
         solver.reset()
 
         let phiCount = solver.intVar("phi_count")
-        let hasPHI = solver.boolVar("has_phi")
         let isPublic = solver.boolVar("is_public")
 
         // Bind actual values
         solver.bind("phi_count", to: .int(result.entities.count))
-        solver.bind("has_phi", to: .bool(result.containsPHI))
         solver.bind("is_public", to: .bool(policy.requiresNoData))
 
         // Build constraint based on policy type

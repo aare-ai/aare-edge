@@ -50,9 +50,13 @@ public final class PHIDetector {
         configURL: URL? = nil,
         maxSequenceLength: Int = 512
     ) throws {
-        // Load CoreML model
+        // Load CoreML model - force CPU on simulator to avoid MpsGraph issues
         let config = MLModelConfiguration()
-        config.computeUnits = .all // Use ANE when available
+        #if targetEnvironment(simulator)
+        config.computeUnits = .cpuOnly
+        #else
+        config.computeUnits = .all // Use ANE when available on real devices
+        #endif
         self.model = try MLModel(contentsOf: modelURL, configuration: config)
 
         // Initialize tokenizer
@@ -183,14 +187,26 @@ public final class PHIDetector {
         // Run prediction
         let output = try model.prediction(from: inputFeatures)
 
-        // Extract logits from output
-        guard let logitsFeature = output.featureValue(for: "var_407"),
-              let logitsArray = logitsFeature.multiArrayValue else {
-            // Try alternative output name
-            if let firstFeature = output.featureNames.first,
-               let altLogits = output.featureValue(for: firstFeature)?.multiArrayValue {
-                return extractLogits(from: altLogits)
+        // Extract logits from output - try common output names
+        let outputNames = ["logits", "var_407", "output"]
+        var logitsArray: MLMultiArray?
+
+        for name in outputNames {
+            if let feature = output.featureValue(for: name),
+               let array = feature.multiArrayValue {
+                logitsArray = array
+                break
             }
+        }
+
+        // Fallback to first available output
+        if logitsArray == nil,
+           let firstFeature = output.featureNames.first,
+           let altLogits = output.featureValue(for: firstFeature)?.multiArrayValue {
+            logitsArray = altLogits
+        }
+
+        guard let logitsArray = logitsArray else {
             throw PHIDetectorError.invalidModelOutput
         }
 
@@ -199,6 +215,7 @@ public final class PHIDetector {
 
     /// Extract logits from MLMultiArray to 2D Float array.
     private func extractLogits(from array: MLMultiArray) -> [[Float]] {
+        // Shape is [batch=1, seq_length, num_labels]
         let seqLength = array.shape[1].intValue
         let numLabels = array.shape[2].intValue
 
@@ -207,7 +224,9 @@ public final class PHIDetector {
         for i in 0..<seqLength {
             var tokenLogits: [Float] = []
             for j in 0..<numLabels {
-                let index = i * numLabels + j
+                // Index into 3D array: batch * (seq * labels) + seq * labels + label
+                // Since batch=0, this simplifies to: i * numLabels + j
+                let index = [0, i, j] as [NSNumber]
                 tokenLogits.append(array[index].floatValue)
             }
             logits.append(tokenLogits)
@@ -304,6 +323,13 @@ public struct PHIDetectionResult {
 
     /// Number of tokens processed
     public let tokenCount: Int
+
+    /// Public initializer
+    public init(text: String, entities: [PHIEntity], tokenCount: Int) {
+        self.text = text
+        self.entities = entities
+        self.tokenCount = tokenCount
+    }
 
     /// Whether any PHI was detected
     public var containsPHI: Bool {

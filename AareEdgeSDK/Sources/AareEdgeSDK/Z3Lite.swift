@@ -410,7 +410,7 @@ public class BoolExpr: Expression {
         return Or(self, other)
     }
 
-    public func implies(_ other: BoolExpr) -> Implies {
+    public func implies(_ other: Expression) -> Implies {
         return Implies(self, other)
     }
 
@@ -595,24 +595,14 @@ public class Arithmetic: Expression {
 
 // MARK: - Convenience Functions
 
-/// Create a NOT expression.
-public func Not(_ expr: Expression) -> Not {
-    return AareEdgeSDK.Not(expr)
-}
-
-/// Create an AND expression.
-public func And(_ exprs: Expression...) -> Expression {
+/// Create an AND expression from multiple expressions.
+public func AndAll(_ exprs: Expression...) -> Expression {
     guard let first = exprs.first else { return BoolExpr.constant(true) }
     return exprs.dropFirst().reduce(first) { AareEdgeSDK.And($0, $1) }
 }
 
-/// Create an OR expression.
-public func Or(_ exprs: Expression...) -> Expression {
+/// Create an OR expression from multiple expressions.
+public func OrAll(_ exprs: Expression...) -> Expression {
     guard let first = exprs.first else { return BoolExpr.constant(false) }
     return exprs.dropFirst().reduce(first) { AareEdgeSDK.Or($0, $1) }
-}
-
-/// Create an implication.
-public func Implies(_ left: Expression, _ right: Expression) -> Implies {
-    return AareEdgeSDK.Implies(left, right)
 }

@@ -116,7 +116,7 @@ public final class WordPieceTokenizer {
         var currentOffset = 0
 
         for token in basicTokens {
-            let (wordpieceTokens, wordpieceIds) = wordpieceTokenize(token)
+            let (wordpieceTokens, wordpieceIds, charLengths) = wordpieceTokenize(token)
 
             // Find token position in original text
             if let range = processedText.range(of: token, range: processedText.index(processedText.startIndex, offsetBy: currentOffset)..<processedText.endIndex) {
@@ -124,9 +124,10 @@ public final class WordPieceTokenizer {
                 let endOffset = processedText.distance(from: processedText.startIndex, to: range.upperBound)
 
                 var tokenStartOffset = startOffset
-                for (i, wpToken) in wordpieceTokens.enumerated() {
-                    let wpLength = wpToken.hasPrefix("##") ? wpToken.count - 2 : wpToken.count
-                    let tokenEndOffset = min(tokenStartOffset + wpLength, endOffset)
+                for i in 0..<wordpieceTokens.count {
+                    // Use actual character length consumed, not token string length
+                    let charLen = charLengths[i]
+                    let tokenEndOffset = min(tokenStartOffset + charLen, endOffset)
 
                     inputIds.append(wordpieceIds[i])
                     attentionMask.append(1)
@@ -204,9 +205,11 @@ public final class WordPieceTokenizer {
     }
 
     /// WordPiece tokenization for a single word.
-    private func wordpieceTokenize(_ word: String) -> ([String], [Int]) {
+    /// Returns tokens, their IDs, and the actual character length each token represents in the original word.
+    private func wordpieceTokenize(_ word: String) -> ([String], [Int], [Int]) {
         var tokens: [String] = []
         var ids: [Int] = []
+        var charLengths: [Int] = []  // Track actual character count for each token
 
         var start = word.startIndex
 
@@ -221,6 +224,8 @@ public final class WordPieceTokenizer {
                 if let tokenId = vocab[candidate] {
                     tokens.append(candidate)
                     ids.append(tokenId)
+                    // The actual character length is the length of the substring, not the token
+                    charLengths.append(substring.count)
                     foundSubword = true
                     break
                 }
@@ -232,13 +237,14 @@ public final class WordPieceTokenizer {
                 // Character not in vocab, use UNK
                 tokens.append(unkToken)
                 ids.append(unkTokenId)
+                charLengths.append(1)  // Single character
                 start = word.index(after: start)
             } else {
                 start = end
             }
         }
 
-        return (tokens, ids)
+        return (tokens, ids, charLengths)
     }
 
     /// Check if character is punctuation.

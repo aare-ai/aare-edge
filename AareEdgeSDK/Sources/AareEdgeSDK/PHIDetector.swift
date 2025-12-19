@@ -141,10 +141,12 @@ public final class PHIDetector {
         for i in 0..<tokenized.realTokenCount {
             let predLabel = predictions[i]
             let confidence = probabilities[i][predLabel]
-            let token = tokenizer.convertIdsToTokens([tokenized.inputIds[i]]).first ?? ""
+            let tokenId = tokenized.inputIds[i]
+            let token = tokenizer.convertIdsToTokens([tokenId]).first ?? ""
 
             tokenScores.append(TokenScore(
                 token: token,
+                tokenId: tokenId,
                 labelId: predLabel,
                 label: labelMap[predLabel] ?? "O",
                 confidence: confidence,
@@ -384,6 +386,9 @@ public struct PHIEntity: Equatable, Hashable {
 public struct TokenScore {
     /// Token string
     public let token: String
+
+    /// Token ID from vocabulary
+    public let tokenId: Int
 
     /// Predicted label ID
     public let labelId: Int

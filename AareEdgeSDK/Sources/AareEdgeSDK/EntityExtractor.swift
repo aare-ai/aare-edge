@@ -260,16 +260,53 @@ private class EntityBuilder {
         let startIndex = originalText.index(originalText.startIndex, offsetBy: startOffset)
         let endIndex = originalText.index(originalText.startIndex, offsetBy: min(endOffset, originalText.count))
 
-        let text = String(originalText[startIndex..<endIndex])
+        var text = String(originalText[startIndex..<endIndex])
             .trimmingCharacters(in: .whitespaces)
+
+        guard !text.isEmpty else { return nil }
+
+        // Strip trailing punctuation that doesn't belong to the entity
+        let trailingPunctuation: Set<Character> = [",", ".", ";", ":", "!", "?", ")", "]", "}", "'", "\""]
+        var adjustedEndOffset = endOffset
+
+        while let lastChar = text.last, trailingPunctuation.contains(lastChar) {
+            text.removeLast()
+            adjustedEndOffset -= 1
+        }
+
+        // Strip leading punctuation, but preserve ( if followed by digits (phone numbers)
+        let leadingPunctuation: Set<Character> = ["[", "{", "'", "\""]
+        var adjustedStartOffset = startOffset
+
+        while let firstChar = text.first, leadingPunctuation.contains(firstChar) {
+            text.removeFirst()
+            adjustedStartOffset += 1
+        }
+
+        // Special handling for leading ( - only strip if NOT followed by a digit
+        if text.first == "(" {
+            let secondIndex = text.index(after: text.startIndex)
+            if secondIndex < text.endIndex {
+                let secondChar = text[secondIndex]
+                if !secondChar.isNumber {
+                    // Not a phone number format, strip the (
+                    text.removeFirst()
+                    adjustedStartOffset += 1
+                }
+            } else {
+                // Just a lone (, strip it
+                text.removeFirst()
+                adjustedStartOffset += 1
+            }
+        }
 
         guard !text.isEmpty else { return nil }
 
         return PHIEntity(
             type: type,
             text: text,
-            startOffset: startOffset,
-            endOffset: endOffset,
+            startOffset: adjustedStartOffset,
+            endOffset: adjustedEndOffset,
             confidence: confidence
         )
     }
